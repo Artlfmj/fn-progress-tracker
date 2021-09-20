@@ -27,6 +27,9 @@ axios({
             embeds : [embeds[0]]
         }
     })
+    .catch(e => {
+        return console.log(chalk.red("An error occured during the webhook test. | Please review your config, if you believe this is an error try again later. If this error still occurs, please open an issue on Github"))
+    })
     .then(async(data) => {
         console.log(chalk.green.bold("Webhook valid, starting api checks"))
         const initm = await axios({
@@ -44,7 +47,7 @@ axios({
                 embeds : [embeds[1]]
             }
         })
-        let ok = true;
+        let check = true;
         const initcom = await axios({url : endpoints.fnapicom.check, method : "get"})
         .catch(e => {
             console.log(e.toJSON())
@@ -56,21 +59,6 @@ axios({
             embeds[1].description = "Fortnite API COM : :white_check_mark:"
             console.log(chalk.green("Fortnite API COM | OK"))
         }
-        axios({
-            url : process.env.WEBHOOK + `/messages/${initm.data.id}`,
-            method : "patch",
-            headers : {
-                'Content-Type': 'application/json'
-            },
-            params : {
-                wait : true
-            },
-            data : {
-                username : identity.data.user.name,
-                avatar_url : identity.data.user.avatar,
-                embeds : [embeds[1]]
-            }
-        })
         const initio = await axios({url : endpoints.fnapiio.check, method : "get"})
         .catch(e => {
             console.log(e.toJSON())
@@ -123,8 +111,26 @@ axios({
                 embeds : [embeds[1]]
             }
         })
+        if(check){}
+        else {
+            embeds[1].description = embeds[1].description + "\nOne of the checks was not fufilled. Please check console to see what strops the program from running"
+            await axios({
+                url : process.env.WEBHOOK + `/messages/${initm.data.id}`,
+                method : "patch",
+                headers : {
+                    'Content-Type': 'application/json'
+                },
+                params : {
+                    wait : true
+                },
+                data : {
+                    username : identity.data.user.name,
+                    avatar_url : identity.data.user.avatar,
+                    embeds : [embeds[1]]
+                }
+            })
+            return console.log(chalk.bold.red("One of the checks was not fufilled. Please check console to see what strops the program from running"))
+        }
     })
-    .catch(e => {
-        return console.log(chalk.red("An error occured during the webhook test. | Please review your config, if you believe this is an error try again later. If this error still occurs, please open an issue on Github"))
-    })
+    
 })
