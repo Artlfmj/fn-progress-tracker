@@ -1,6 +1,6 @@
 {
     "fnapiio" : {
-
+        "check" : "https://fortniteapi.io/v1/status"
     },
     "fnapicom" : {
         "check" : "https://fortnite-api.com/v2/aes"

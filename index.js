@@ -44,15 +44,43 @@ axios({
                 embeds : [embeds[1]]
             }
         })
+        let ok = true;
         const initcom = await axios({url : endpoints.fnapicom.check, method : "get"})
         .catch(e => {
             console.log(e.toJSON())
             embeds[1].description = "Fortnite API COM : :x:"
             console.log(chalk.red("Fortnite API COM down"))
+            check = false
         })
         if(initcom){
             embeds[1].description = "Fortnite API COM : :white_check_mark:"
             console.log(chalk.green("Fortnite API COM | OK"))
+        }
+        axios({
+            url : process.env.WEBHOOK + `/messages/${initm.data.id}`,
+            method : "patch",
+            headers : {
+                'Content-Type': 'application/json'
+            },
+            params : {
+                wait : true
+            },
+            data : {
+                username : identity.data.user.name,
+                avatar_url : identity.data.user.avatar,
+                embeds : [embeds[1]]
+            }
+        })
+        const initio = await axios({url : endpoints.fnapiio.check, method : "get"})
+        .catch(e => {
+            console.log(e.toJSON())
+            embeds[1].description = embeds[1].description + "\nFortnite API Io : :x:"
+            console.log(chalk.red("Fortnite API Io down"))
+            check = false
+        })
+        if(initio){
+            embeds[1].description = embeds[1].description + "\nFortnite API Io : :white_check_mark:"
+            console.log(chalk.green("Fortnite API Io | OK"))
         }
         axios({
             url : process.env.WEBHOOK + `/messages/${initm.data.id}`,
