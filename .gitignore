@@ -1,3 +1,6 @@
+#Config
+webhook.json
+
 # Logs
 logs
 *.log
