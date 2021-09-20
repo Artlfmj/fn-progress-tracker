@@ -1,0 +1,8 @@
+{
+    "fnapiio" : {
+
+    },
+    "fnapicom" : {
+        "check" : "https://fortnite-api.com/v2/aes"
+    }
+}
