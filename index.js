@@ -97,6 +97,32 @@ axios({
                 embeds : [embeds[1]]
             }
         })
+        const initiokey = await axios({url : endpoints.fnapiio.check, method : "get", headers : {Authorization : process.env.FNAPIIO}})
+        
+        if(initiokey.data.result){
+            embeds[1].description = embeds[1].description + "\nFortnite API Io Key : :white_check_mark:"
+            console.log(chalk.green("Fortnite API Io key | OK"))
+        } else {
+            
+            embeds[1].description = embeds[1].description + "\nFortnite API Io Key: :x:"
+            console.log(chalk.red("Fortnite API Io key is invalid"))
+            check = false
+        }
+        axios({
+            url : process.env.WEBHOOK + `/messages/${initm.data.id}`,
+            method : "patch",
+            headers : {
+                'Content-Type': 'application/json'
+            },
+            params : {
+                wait : true
+            },
+            data : {
+                username : identity.data.user.name,
+                avatar_url : identity.data.user.avatar,
+                embeds : [embeds[1]]
+            }
+        })
     })
     .catch(e => {
         return console.log(chalk.red("An error occured during the webhook test. | Please review your config, if you believe this is an error try again later. If this error still occurs, please open an issue on Github"))
