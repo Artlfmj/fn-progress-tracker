@@ -6,12 +6,13 @@ const chalk = require('chalk')
 const embeds = require('./assets/embeds.json')
 const endpoints = require('./assets/endpoints.json')
 
+// Identity request
 axios({
     url : package.urls.api.identity,
     method : "get"
 })
 .then(identity => {
-    
+    //Webhook check
     axios({
         url : process.env.WEBHOOK,
         method : "post",
@@ -32,6 +33,7 @@ axios({
     })
     .then(async(data) => {
         console.log(chalk.green.bold("Webhook valid, starting api checks"))
+        // Api checks
         const initm = await axios({
             url : process.env.WEBHOOK,
             method : "post",
@@ -113,6 +115,7 @@ axios({
         })
         if(check){}
         else {
+            // Checks message update
             embeds[1].description = embeds[1].description + "\nOne of the checks was not fufilled. Please check console to see what strops the program from running"
             await axios({
                 url : process.env.WEBHOOK + `/messages/${initm.data.id}`,
