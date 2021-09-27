@@ -4,5 +4,10 @@
     },
     "fnapicom" : {
         "check" : "https://fortnite-api.com/v2/aes"
+    },
+    "github" : {
+        "identity" : "https://raw.githubusercontent.com/Artlfmj/fn-progress-tracker/main/api/identity.json",
+        "emergency-notices" : "https://raw.githubusercontent.com/Artlfmj/fn-progress-tracker/main/api/emergency.json",
+        "releases" : "https://api.github.com/repos/artlfmj/fn-progress-tracker/releases"
     }
 }
