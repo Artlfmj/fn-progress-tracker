@@ -5,10 +5,11 @@ const package = require('./package.json')
 const chalk = require('chalk')
 const embeds = require('./assets/embeds.json')
 const endpoints = require('./assets/endpoints.json')
+const { MessageEmbed } = require('discord.js')
 
 // Identity request
 axios({
-    url : package.urls.api.identity,
+    url : endpoints.github.identity,
     method : "get"
 })
 .then(identity => {
@@ -113,7 +114,50 @@ axios({
                 embeds : [embeds[1]]
             }
         })
-        if(check){}
+        if(check){
+            const bugs = await axios({
+                method : "get",
+                url : endpoints.github['emergency-notices']
+            })
+            console.log(bugs.data)
+            if(bugs.data){
+                let embs = []
+                for(const bug of bugs.data){
+                    
+                    let emb = {
+                        image : {}
+                    };
+                    emb.title = "BUG DETECTED : " + bug.name,
+                    emb.description = bug.description,
+                    emb.image.url = bug.image
+                    emb.color = 16711680
+                    embs.push(emb)
+                }
+                if(embs.length){
+                    axios({
+                        url : process.env.WEBHOOK,
+                        method : "post",
+                        headers : {
+                            'Content-Type': 'application/json'
+                        },
+                        params : {
+                            wait : true
+                        },
+                        data : {
+                            username : identity.data.user.name,
+                            avatar_url : identity.data.user.avatar,
+                            embeds : embs
+                        }
+                    })
+                }
+                const releases = await axios({
+                    url : endpoints.github.releases,
+                    method : "get"
+                })
+                
+                
+            }
+        }
         else {
             // Checks message update
             embeds[1].description = embeds[1].description + "\nOne of the checks was not fufilled. Please check console to see what strops the program from running"
