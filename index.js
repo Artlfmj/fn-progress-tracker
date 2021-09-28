@@ -6,6 +6,7 @@ const chalk = require('chalk')
 const embeds = require('./assets/embeds.json')
 const endpoints = require('./assets/endpoints.json')
 const { MessageEmbed } = require('discord.js')
+const pkg = require('./package.json')
 
 // Identity request
 axios({
@@ -73,21 +74,7 @@ axios({
             embeds[1].description = embeds[1].description + "\nFortnite API Io : :white_check_mark:"
             console.log(chalk.green("Fortnite API Io | OK"))
         }
-        axios({
-            url : process.env.WEBHOOK + `/messages/${initm.data.id}`,
-            method : "patch",
-            headers : {
-                'Content-Type': 'application/json'
-            },
-            params : {
-                wait : true
-            },
-            data : {
-                username : identity.data.user.name,
-                avatar_url : identity.data.user.avatar,
-                embeds : [embeds[1]]
-            }
-        })
+        
         const initiokey = await axios({url : endpoints.fnapiio.check, method : "get", headers : {Authorization : process.env.FNAPIIO}})
         
         if(initiokey.data.result){
@@ -119,7 +106,7 @@ axios({
                 method : "get",
                 url : endpoints.github['emergency-notices']
             })
-            console.log(bugs.data)
+            
             if(bugs.data){
                 let embs = []
                 for(const bug of bugs.data){
@@ -154,8 +141,40 @@ axios({
                     url : endpoints.github.releases,
                     method : "get"
                 })
-                
-                
+                sleep(5000)      
+                const newupd = pkg.version === releases.data[0].name
+                if(!newupd){
+                    let updemb = {
+                        author : {}
+                    };
+                    updemb.title = "New version detected: " + releases.data[0].name;
+                    updemb.description = "**Please update the program!**\n\n**Content of the update:**\n" + releases.data[0].body + `\n**[Download here](${releases.data[0].zipball_url})**`;
+                    updemb.url = releases.data[0].zipball_url;
+                    updemb.color = 16711680;
+                    updemb.timestamp = releases.data[0].published_at;
+                    updemb.author.name = releases.data[0].author.login;
+                    updemb.author.url = releases.data[0].author.html_url;
+                    updemb.author.icon_url = releases.data[0].author.avatar_url;
+                    
+                    axios({
+                        url : process.env.WEBHOOK,
+                        method : "post",
+                        headers : {
+                            'Content-Type': 'application/json'
+                        },
+                        params : {
+                            wait : true
+                        },
+                        data : {
+                            username : identity.data.user.name,
+                            avatar_url : identity.data.user.avatar,
+                            embeds : [updemb]
+                        }
+                    })
+                    console.log(chalk.red("A new version is available! Check webhook channel for more details"))
+                } else {
+                    console.log(chalk.green('Code is up to date! No update required'))
+                }
             }
         }
         else {
@@ -181,3 +200,11 @@ axios({
     })
     
 })
+
+function sleep(milliseconds) {
+    const date = Date.now();
+    let currentDate = null;
+    do {
+      currentDate = Date.now();
+    } while (currentDate - date < milliseconds);
+  }
