@@ -1,12 +1,13 @@
 require('dotenv').config()
 const axios = require('axios')
-const { post } = require('axios')
 const package = require('./package.json')
 const chalk = require('chalk')
 const embeds = require('./assets/embeds.json')
 const endpoints = require('./assets/endpoints.json')
-const { MessageEmbed } = require('discord.js')
 const pkg = require('./package.json')
+const mongoose = require('mongoose')
+const fs = require('fs')
+const cl = require('date-events')()
 
 // Identity request
 axios({
@@ -174,6 +175,13 @@ axios({
                     console.log(chalk.red("A new version is available! Check webhook channel for more details"))
                 } else {
                     console.log(chalk.green('Code is up to date! No update required'))
+                }
+                await mongoose.connect(process.env.MONGO,  { useNewUrlParser: true , useUnifiedTopology: true })
+                mongoose.Promise = global.Promise;
+                const eventDir = 'functions'
+                for (const fileName of fs.readdirSync(eventDir)) {
+                    const fileContent = require(`./${eventDir}/${fileName}`)
+                    cl.on(fileName.split('.')[0], fileContent.bind(null, cl))
                 }
             }
         }
