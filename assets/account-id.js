@@ -22,5 +22,12 @@ rl.question('What is your account name?', async(answer) => {
         'x-api-key' : process.env.FNAPICOM
       }
     })
+    .catch(e => {
+      const json = e.toJson();
+      
+    })
+    .then(async(req) => {
+      //Interpret data
+    })  
    }
 })
