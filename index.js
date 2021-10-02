@@ -1,90 +1,218 @@
-const Discord = require('discord.js')
 require('dotenv').config()
 const axios = require('axios')
-const clock = require('date-events')()
-const servers = require('./servers.json')
+const package = require('./package.json')
+const chalk = require('chalk')
+const embeds = require('./assets/embeds.json')
+const endpoints = require('./assets/endpoints.json')
+const pkg = require('./package.json')
+const mongoose = require('mongoose')
 const fs = require('fs')
+const cl = require('date-events')()
 
-
-const client = new Discord.Client({
-    intents : ['GUILD_MESSAGES', "GUILDS", "GUILD_INTEGRATIONS"]
+// Identity request
+axios({
+    url : endpoints.github.identity,
+    method : "get"
 })
-clock.on("minute", async() => {
-    let messageexists = true;
-    let message;
-    const channel = await client.channels.cache.get(process.env.channelid)
-    const messagereq = await channel.messages.fetch({limit : 1})
-    const messages = messagereq.first()
-    if(!messages){ messageexists = false}
-    else{
-        
-        if(messages.author.id === client.user.id){
-            message = messages
-        } else {
-            messageexists = false
+.then(identity => {
+    //Webhook check
+    axios({
+        url : process.env.WEBHOOK,
+        method : "post",
+        headers : {
+            'Content-Type': 'application/json'
+        },
+        params : {
+            wait : true
+        },
+        data : {
+            username : identity.data.user.name,
+            avatar_url : identity.data.user.avatar,
+            embeds : [embeds[0]]
         }
-    }
-    let serversdata = []
-    servers.forEach(async(server) => {
-        const time = new Date().getMilliseconds()
+    })
+    .catch(e => {
+        return console.log(chalk.red("An error occured during the webhook test. | Please review your config, if you believe this is an error try again later. If this error still occurs, please open an issue on Github"))
+    })
+    .then(async(data) => {
+        console.log(chalk.green.bold("Webhook valid, starting api checks"))
+        // Api checks
+        const initm = await axios({
+            url : process.env.WEBHOOK,
+            method : "post",
+            headers : {
+                'Content-Type': 'application/json'
+            },
+            params : {
+                wait : true
+            },
+            data : {
+                username : identity.data.user.name,
+                avatar_url : identity.data.user.avatar,
+                embeds : [embeds[1]]
+            }
+        })
         let check = true;
-        
-        await axios({
-            method : "get",
-            url : server
-        })
+        const initcom = await axios({url : endpoints.fnapicom.check, method : "get"})
         .catch(e => {
-            let check = false;
+            console.log(e.toJSON())
+            embeds[1].description = "Fortnite API COM : :x:"
+            console.log(chalk.red("Fortnite API COM down"))
+            check = false
         })
-        .then(async(data) => {
-            if(!data){
-                check = false
-            }
-            const end = new Date().getMilliseconds()
-            const ms = end - time
-            const object = {
-                server : server,
-                check : check,
-                ping : ms
-            }
-            serversdata.push(object)
-            await fs.writeFile('./data.json', JSON.stringify(serversdata), err => {
-                if (err) {
-                  console.error(err)
-                  return
-                }
-                //file written successfully
-              })
+        if(initcom){
+            embeds[1].description = "Fortnite API COM : :white_check_mark:"
+            console.log(chalk.green("Fortnite API COM | OK"))
+        }
+        const initio = await axios({url : endpoints.fnapiio.check, method : "get"})
+        .catch(e => {
+            console.log(e.toJSON())
+            embeds[1].description = embeds[1].description + "\nFortnite API Io : :x:"
+            console.log(chalk.red("Fortnite API Io down"))
+            check = false
         })
+        if(initio){
+            embeds[1].description = embeds[1].description + "\nFortnite API Io : :white_check_mark:"
+            console.log(chalk.green("Fortnite API Io | OK"))
+        }
         
-    })
-    const file = await fs.readFileSync('data.json', err => {
-        if (err) {
-          console.error(err)
-          return
-        }
-    })
-    let json = JSON.parse(file)
-   
-    const embed = require('./embed.json')
-    embed.description = "";
-    json.forEach(async(serv) => {
-        let emoji;
-        if(serv.check){
-            emoji = "✅"
+        const initiokey = await axios({url : endpoints.fnapiio.check, method : "get", headers : {Authorization : process.env.FNAPIIO}})
+        
+        if(initiokey.data.result){
+            embeds[1].description = embeds[1].description + "\nFortnite API Io Key : :white_check_mark:"
+            console.log(chalk.green("Fortnite API Io key | OK"))
         } else {
-            emoji = " ❌"
+            
+            embeds[1].description = embeds[1].description + "\nFortnite API Io Key: :x:"
+            console.log(chalk.red("Fortnite API Io key is invalid"))
+            check = false
         }
-        embed.description = embed.description + `**${serv.server}** : ${emoji} | Ping : ${serv.ping}ms\n`
+        axios({
+            url : process.env.WEBHOOK + `/messages/${initm.data.id}`,
+            method : "patch",
+            headers : {
+                'Content-Type': 'application/json'
+            },
+            params : {
+                wait : true
+            },
+            data : {
+                username : identity.data.user.name,
+                avatar_url : identity.data.user.avatar,
+                embeds : [embeds[1]]
+            }
+        })
+        if(check){
+            const bugs = await axios({
+                method : "get",
+                url : endpoints.github['emergency-notices']
+            })
+            
+            if(bugs.data){
+                let embs = []
+                for(const bug of bugs.data){
+                    
+                    let emb = {
+                        image : {}
+                    };
+                    emb.title = "BUG DETECTED : " + bug.name,
+                    emb.description = bug.description,
+                    emb.image.url = bug.image
+                    emb.color = 16711680
+                    embs.push(emb)
+                }
+                if(embs.length){
+                    axios({
+                        url : process.env.WEBHOOK,
+                        method : "post",
+                        headers : {
+                            'Content-Type': 'application/json'
+                        },
+                        params : {
+                            wait : true
+                        },
+                        data : {
+                            username : identity.data.user.name,
+                            avatar_url : identity.data.user.avatar,
+                            embeds : embs
+                        }
+                    })
+                }
+                const releases = await axios({
+                    url : endpoints.github.releases,
+                    method : "get"
+                })
+                sleep(5000)      
+                const newupd = pkg.version === releases.data[0].name
+                if(!newupd){
+                    let updemb = {
+                        author : {}
+                    };
+                    updemb.title = "New version detected: " + releases.data[0].name;
+                    updemb.description = "**Please update the program!**\n\n**Content of the update:**\n" + releases.data[0].body + `\n**[Download here](${releases.data[0].zipball_url})**`;
+                    updemb.url = releases.data[0].zipball_url;
+                    updemb.color = 16711680;
+                    updemb.timestamp = releases.data[0].published_at;
+                    updemb.author.name = releases.data[0].author.login;
+                    updemb.author.url = releases.data[0].author.html_url;
+                    updemb.author.icon_url = releases.data[0].author.avatar_url;
+                    
+                    axios({
+                        url : process.env.WEBHOOK,
+                        method : "post",
+                        headers : {
+                            'Content-Type': 'application/json'
+                        },
+                        params : {
+                            wait : true
+                        },
+                        data : {
+                            username : identity.data.user.name,
+                            avatar_url : identity.data.user.avatar,
+                            embeds : [updemb]
+                        }
+                    })
+                    console.log(chalk.red("A new version is available! Check webhook channel for more details"))
+                } else {
+                    console.log(chalk.green('Code is up to date! No update required'))
+                }
+                await mongoose.connect(process.env.MONGO,  { useNewUrlParser: true , useUnifiedTopology: true })
+                mongoose.Promise = global.Promise;
+                const eventDir = 'functions'
+                for (const fileName of fs.readdirSync(eventDir)) {
+                    const fileContent = require(`./${eventDir}/${fileName}`)
+                    cl.on(fileName.split('.')[0], fileContent.bind(null, cl))
+                }
+            }
+        }
+        else {
+            // Checks message update
+            embeds[1].description = embeds[1].description + "\nOne of the checks was not fufilled. Please check console to see what strops the program from running"
+            await axios({
+                url : process.env.WEBHOOK + `/messages/${initm.data.id}`,
+                method : "patch",
+                headers : {
+                    'Content-Type': 'application/json'
+                },
+                params : {
+                    wait : true
+                },
+                data : {
+                    username : identity.data.user.name,
+                    avatar_url : identity.data.user.avatar,
+                    embeds : [embeds[1]]
+                }
+            })
+            return console.log(chalk.bold.red("One of the checks was not fufilled. Please check console to see what strops the program from running"))
+        }
     })
-    if(messageexists){
-        messages.edit({embeds : [embed]})
-    } else {
-        channel.send({embeds : [embed]})
-    }
+    
+})
 
-})
-client.on("ready", async() => {
-    console.log(`${client.user.username} est en ligne!`)
-})
-client.login(process.env.token)
+function sleep(milliseconds) {
+    const date = Date.now();
+    let currentDate = null;
+    do {
+      currentDate = Date.now();
+    } while (currentDate - date < milliseconds);
+  }
