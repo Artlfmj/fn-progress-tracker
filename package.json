@@ -1,6 +1,6 @@
 {
   "name": "fn-progress-tracker",
-  "version": "0.01",
+  "version": "0.1",
   "description": "Fortnite Progress Tracker",
   "main": "index.js",
   "scripts": {
